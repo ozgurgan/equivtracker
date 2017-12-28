@@ -1,22 +1,6 @@
 {% extends "base.html" %}
-
 {% block content %}
-    <p>Enter your currencies in the fields, then click "Submit" to see their total usd equivalent</p>
-    <div id="pairs"></div>
-    <script type=text/javascript>
-        $(function() {
-            $('a#calculate').bind('click', function() {
-                $.getJSON("/_get_json", function(pair){
-                    console.log( "JSON Data: " + pair[3].symbol);
-                });
-            });
-        });
-    </script>
-    <h1>jQuery Example</h1>
-    <p><input type="text" size=5 name=a placeholder="ETH"> amount
-       <input type="text" size=5 name=b placeholder="0.5">
-       <span id=result>?</span>
-    <p><a href=# id=calculate>calculate server side</a>
+<div id="app"></div>
 {% endblock %}
 
 
