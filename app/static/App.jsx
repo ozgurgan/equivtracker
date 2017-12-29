@@ -78,7 +78,7 @@ class Row extends React.Component {
         this.state = {
             symbol: '',
             currValue: 0.00,
-            amount: 0.00,
+            amount: '',
         }
         this.onChange = this.onChange.bind(this)
         this.onChangeAmount = this.onChangeAmount.bind(this)
@@ -105,9 +105,9 @@ class Row extends React.Component {
     render() {
         return (
             <tr>
-                <td><input style={{ width:100 }} type="text" onChange={this.onChange} value={this.state.symbol} /></td>
+                <td><input style={{ width:100 }} type="text" onChange={this.onChange} value={this.state.symbol} placeholder="ETHUSDT" /></td>
                 <td>{this.state.currValue}</td>
-                <td><input style={{ width:50 }}  type="text" value={this.state.amount} onChange={this.onChangeAmount} /></td>
+                <td><input style={{ width:50 }}  type="text" value={this.state.amount} onChange={this.onChangeAmount} placeholder="0.5" /></td>
                 <td>{(this.state.currValue * Number(this.state.amount)).toFixed(6)}</td>
             </tr>
         )
