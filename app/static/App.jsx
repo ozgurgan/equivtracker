@@ -180,7 +180,7 @@ class Row extends React.Component {
         if (!this.state.symbol) return false
         const amount = event.target.value
         if (amount < 0 || isNaN(amount)) return false
-        const totalVal = Number((this.state.currValue * amount).toFixed(3))
+        const totalVal = Number((this.state.currValue * amount).toFixed(4))
         this.setState({
             amount: amount,
             total: totalVal
@@ -196,7 +196,7 @@ class Row extends React.Component {
         if (!val || isNaN(this.state.amount)) {
             totalValue = 0.00
         } else {
-            totalValue = Number((val.price * this.state.amount).toFixed(3))
+            totalValue = Number((val.price * this.state.amount).toFixed(4))
         }
         this.setState({
             symbol: symbol,
@@ -239,7 +239,6 @@ class Row extends React.Component {
         const getSuggestionValue = suggestion => suggestion;
         return (
             <tr>
-                {/* <td><input style={{ width: 100 }} type="text" onChange={this.onChange} value={this.state.symbol} placeholder="ETHUSDT" /></td> */}
                 <td><Autosuggest
                     suggestions={this.state.suggestions}
                     onSuggestionsFetchRequested={this.onSuggestionsFetchRequested}
