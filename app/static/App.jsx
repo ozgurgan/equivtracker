@@ -1,17 +1,77 @@
+
+// ==================================================
+// Poor Man's Almost-Global State Manager Starts Here
+// --------------------------------------------------
+// Didn't want to use redux just for grand total calculation.
+// Remember -> https://medium.com/@dan_abramov/you-might-not-need-redux-be46360cf367
+// ==================================================
+class Store {
+    constructor(app) {
+        this.app = app
+    }
+
+    getPrices = () => {
+        return this.app.state.prices
+    }
+    
+    getSymbols = () => {
+        if (!this.app.state.prices.length) return []
+        return this.app.state.prices.map(elm => elm.symbol)
+    }
+
+    update = (id, value=0.00) => {
+        const existing = this.app.state.totals.filter(elm => elm.id == id)
+        if (existing.length < 1) {
+            this.app.setState({
+                totals: [...this.app.state.totals, {id: id, value: value}]
+            })
+        } else {
+            this.app.setState({
+                totals: this.app.state.totals.map(elm => elm.id == id ? Object.assign({}, elm, {value: value}) : elm)
+            }, () => {
+                this.app.setState({grandTotal: this.getTotal()})
+            })
+        }
+    }
+
+    remove = (id) => {
+        const newTotals = this.app.state.totals.filter(elm => elm.id !== id)
+        this.app.setState({
+            totals: newTotals
+        })
+    }
+
+    getTotal = () => {
+        if (!this.app.state.totals.length) return 0.00
+        const totals = this.app.state.totals.map(e => Number(e.value))
+        return Number((totals.reduce((sum, x) => sum + x)).toFixed(3))
+    }
+}
+// ==================================================
+// Poor Man's Almost-Global State Manager Ends Here :o
+// ==================================================
+
 class App extends React.Component {
-    constructor() {
-        super()
+    constructor(props) {
+        super(props)
         this.state = {
             loading: true,
             prices: [],
-            symbols: [],
-            inputs: []
+            inputs: [],
+            totals: [],
+            grandTotal: 0.00
+
         }
+        this.store = new Store(this) // Initialise our global state here.
         this.onAddNewAsset = this.onAddNewAsset.bind(this)
     }
+
     onAddNewAsset() {
-        this.setState({inputs: [...this.state.inputs,
-        (<Row key={new Date().getTime()} prices={this.state.prices} symbols={this.state.symbols} />)]})
+        let time = new Date().getTime()
+        this.setState({
+            inputs: [...this.state.inputs,
+            (<Row key={time} id={time} store={this.store} />)]
+        })
     }
     componentDidMount() {
         fetch('/_get_json')
@@ -23,10 +83,12 @@ class App extends React.Component {
                     alert('Error while fetching currencies.')
                     return;
                 }
+
+                let time = new Date().getTime()
                 this.setState({
                     prices: data,
                     loading: false,
-                    symbols: data.map(elm => { return elm.symbol })
+                    inputs: [(<Row key={time} id={time} store={this.store} />)]
                 })
             })
     }
@@ -41,9 +103,19 @@ class App extends React.Component {
                     <span className="icon" style={{ marginRight: 20 }}><i className="fab fa-ethereum fa-2x"></i></span>
                     <span className="icon"><i className="fab fa-bitcoin fa-2x"></i></span>
                 </div>
-                <div className="columns">
-                    <div className="column">
-                        <table className="table is-fullwidth">
+                {this.state.loading ? 
+                        (<div className="has-text-centered" style={{ padding: 50}}>
+                            <span className="icon"><i className="fas fa-crosshairs fa-7x fa-spin"></i></span>
+                            <p style={{marginTop: 20}}>Currency Data Loading...</p>
+                        </div>
+                        ) 
+                        : 
+                (<div className="columns">
+                
+                   <div className="column">
+                   
+                        <div>
+                            <table className="table is-fullwidth">
                             <thead>
                                 <tr>
                                     <th><abbr title="Symbol of Crypto Currency">Currency</abbr></th>
@@ -55,18 +127,26 @@ class App extends React.Component {
                             <tbody>
                                 {this.state.inputs}
                             </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td></td>
+                                    <td></td>
+                                    <td>Grand Total</td>
+                                    <td className="is-warning"><b>{this.state.grandTotal || '-'}</b></td>
+                                </tr>
+                            </tfoot>
                         </table>
-                        <a className={"button is-small is-info " + (this.state.loading ? "is-loading is-disabled" : null)} onClick={this.onAddNewAsset}>
+                        <a className={"button is-small is-info " + (this.state.loading ? "is-disabled" : null)} onClick={this.onAddNewAsset}>
                             <span className="icon is-small">
                                 <i className="fa fa-plus"></i>
                             </span>
                             <span>Add New Asset</span>
                         </a>
+                        </div>
                     </div>
                     <div className="column">
-
                     </div>
-                </div>
+                </div>)}
             </div>
         )
     }
@@ -78,41 +158,57 @@ class Row extends React.Component {
         this.state = {
             symbol: '',
             currValue: 0.00,
-            amount: '',
+            amount: 1,
+            total: 0.00
         }
+        props.store.update(props.id)
+
         this.onChange = this.onChange.bind(this)
         this.onChangeAmount = this.onChangeAmount.bind(this)
     }
 
     onChangeAmount(event) {
         if (!this.state.symbol) return false
-        console.log('aaaa')
         const amount = event.target.value
         if (amount < 0 || isNaN(amount)) return false
+        const totalVal = Number((this.state.currValue * amount).toFixed(3))
         this.setState({
-            amount: amount
+            amount: amount,
+            total: totalVal
+        }, () => {
+            this.props.store.update(this.props.id, totalVal)
         })
+
     }
     onChange(event) {
         const symbol = event.target.value;
-        const val = this.props.prices.find(e => e.symbol === symbol)
+        const val = this.props.store.getPrices().find(e => e.symbol === symbol)
+        let totalValue
+        if (!val || isNaN(this.state.amount)) {
+            totalValue = 0.00
+        } else {
+            totalValue = Number((val.price * this.state.amount).toFixed(3))
+        }
         this.setState({
-          symbol: symbol,
-          currValue: val ? Number(val.price) : 0.00
-        });
+            symbol: symbol,
+            currValue: val ? Number(val.price) : 0.00,
+            total: totalValue
+        }, () => {
+            if (!val) return false
+            this.props.store.update(this.props.id, totalValue)
+        })
     }
 
     render() {
         return (
             <tr>
-                <td><input style={{ width:100 }} type="text" onChange={this.onChange} value={this.state.symbol} placeholder="ETHUSDT" /></td>
+                <td><input style={{ width: 100 }} type="text" onChange={this.onChange} value={this.state.symbol} placeholder="ETHUSDT" /></td>
                 <td>{this.state.currValue}</td>
-                <td><input style={{ width:50 }}  type="text" value={this.state.amount} onChange={this.onChangeAmount} placeholder="0.5" /></td>
-                <td>{(this.state.currValue * Number(this.state.amount)).toFixed(6)}</td>
+                <td><input style={{ width: 50 }} type="text" value={this.state.amount} onChange={this.onChangeAmount} placeholder="0.5" /></td>
+                <td>{this.state.total}</td>
             </tr>
         )
     }
 }
-
 
 ReactDOM.render(<App />, document.getElementById('app'))
