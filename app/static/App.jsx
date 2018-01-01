@@ -13,23 +13,23 @@ class Store {
     getPrices = () => {
         return this.app.state.prices
     }
-    
+
     getSymbols = () => {
         if (!this.app.state.prices.length) return []
         return this.app.state.prices.map(elm => elm.symbol)
     }
 
-    update = (id, value=0.00) => {
+    update = (id, value = 0.00) => {
         const existing = this.app.state.totals.filter(elm => elm.id == id)
         if (existing.length < 1) {
             this.app.setState({
-                totals: [...this.app.state.totals, {id: id, value: value}]
+                totals: [...this.app.state.totals, { id: id, value: value }]
             })
         } else {
             this.app.setState({
-                totals: this.app.state.totals.map(elm => elm.id == id ? Object.assign({}, elm, {value: value}) : elm)
+                totals: this.app.state.totals.map(elm => elm.id == id ? Object.assign({}, elm, { value: value }) : elm)
             }, () => {
-                this.app.setState({grandTotal: this.getTotal()})
+                this.app.setState({ grandTotal: this.getTotal() })
             })
         }
     }
@@ -64,6 +64,9 @@ class App extends React.Component {
         }
         this.store = new Store(this) // Initialise our global state here.
         this.onAddNewAsset = this.onAddNewAsset.bind(this)
+    }
+    componentDidCatch(error, info) {
+        console.log(error, info)
     }
 
     onAddNewAsset() {
@@ -103,60 +106,63 @@ class App extends React.Component {
                     <span className="icon" style={{ marginRight: 20 }}><i className="fab fa-ethereum fa-2x"></i></span>
                     <span className="icon"><i className="fab fa-bitcoin fa-2x"></i></span>
                 </div>
-                {this.state.loading ? 
-                        (<div className="has-text-centered" style={{ padding: 50}}>
-                            <span className="icon"><i className="fas fa-crosshairs fa-7x fa-spin"></i></span>
-                            <p style={{marginTop: 20}}>Currency Data Loading...</p>
-                        </div>
-                        ) 
-                        : 
-                (<div className="columns">
-                
-                   <div className="column">
-                   
-                        <div>
-                            <table className="table is-fullwidth">
-                            <thead>
-                                <tr>
-                                    <th><abbr title="Symbol of Crypto Currency">Currency</abbr></th>
-                                    <th>Current Value</th>
-                                    <th>Amount</th>
-                                    <th>Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {this.state.inputs}
-                            </tbody>
-                            <tfoot>
-                                <tr>
-                                    <td></td>
-                                    <td></td>
-                                    <td>Grand Total</td>
-                                    <td className="is-warning"><b>{this.state.grandTotal || '-'}</b></td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                        <a className={"button is-small is-info " + (this.state.loading ? "is-disabled" : null)} onClick={this.onAddNewAsset}>
-                            <span className="icon is-small">
-                                <i className="fa fa-plus"></i>
-                            </span>
-                            <span>Add New Asset</span>
-                        </a>
-                        </div>
+                {this.state.loading ?
+                    (<div className="has-text-centered" style={{ padding: 50 }}>
+                        <span className="icon"><i className="fas fa-crosshairs fa-7x fa-spin"></i></span>
+                        <p style={{ marginTop: 20 }}>Currency Data Loading...</p>
                     </div>
-                    <div className="column">
-                    </div>
-                </div>)}
+                    )
+                    :
+                    (<div className="columns">
+
+                        <div className="column">
+
+                            <div>
+                                <table className="table is-fullwidth">
+                                    <thead>
+                                        <tr>
+                                            <th><abbr title="Symbol of Crypto Currency">Currency</abbr></th>
+                                            <th>Current Value</th>
+                                            <th>Amount</th>
+                                            <th>Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {this.state.inputs}
+                                    </tbody>
+                                    <tfoot>
+                                        <tr>
+                                            <td></td>
+                                            <td></td>
+                                            <td>Grand Total</td>
+                                            <td className="is-warning"><b>{this.state.grandTotal || '-'}</b></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                                <a className={"button is-small is-info " + (this.state.loading ? "is-disabled" : null)} onClick={this.onAddNewAsset}>
+                                    <span className="icon is-small">
+                                        <i className="fa fa-plus"></i>
+                                    </span>
+                                    <span>Add New Asset</span>
+                                </a>
+                            </div>
+                        </div>
+                        <div className="column">
+                        </div>
+                    </div>)}
             </div>
         )
     }
 }
+
+
 
 class Row extends React.Component {
     constructor(props) {
         super(props)
         this.state = {
             symbol: '',
+            suggestions: [],
             currValue: 0.00,
             amount: 1,
             total: 0.00
@@ -165,6 +171,9 @@ class Row extends React.Component {
 
         this.onChange = this.onChange.bind(this)
         this.onChangeAmount = this.onChangeAmount.bind(this)
+    }
+    componentDidCatch(error, info) {
+        console.log(info)
     }
 
     onChangeAmount(event) {
@@ -180,8 +189,8 @@ class Row extends React.Component {
         })
 
     }
-    onChange(event) {
-        const symbol = event.target.value;
+    onChange(event, suggest ) {
+        const symbol = event.target.value || suggest.newValue
         const val = this.props.store.getPrices().find(e => e.symbol === symbol)
         let totalValue
         if (!val || isNaN(this.state.amount)) {
@@ -198,11 +207,47 @@ class Row extends React.Component {
             this.props.store.update(this.props.id, totalValue)
         })
     }
+    onSuggestionsFetchRequested = ({ value }) => {
+        this.setState({
+            suggestions: this.getSuggestions(value)
+        });
+    };
 
+    // Teach Autosuggest how to calculate suggestions for any given input value.
+    getSuggestions = value => {
+        const inputValue = value.trim().toLowerCase();
+        const inputLength = inputValue.length;
+
+        return inputLength === 0 ? [] : this.props.store.getSymbols().filter(symbol =>
+            symbol.toLowerCase().slice(0, inputLength) === inputValue
+        );
+    };
+
+    onSuggestionsClearRequested = () => {
+        this.setState({
+            suggestions: []
+        });
+    };
     render() {
+        // Autosuggest will pass through all these props to the input.
+        const inputProps = {
+            placeholder: 'ETHUSDT',
+            value: this.state.symbol,
+            onChange: this.onChange
+        };
+        const renderSuggestion = (suggestion) => <div>{suggestion}</div>
+        const getSuggestionValue = suggestion => suggestion;
         return (
             <tr>
-                <td><input style={{ width: 100 }} type="text" onChange={this.onChange} value={this.state.symbol} placeholder="ETHUSDT" /></td>
+                {/* <td><input style={{ width: 100 }} type="text" onChange={this.onChange} value={this.state.symbol} placeholder="ETHUSDT" /></td> */}
+                <td><Autosuggest
+                    suggestions={this.state.suggestions}
+                    onSuggestionsFetchRequested={this.onSuggestionsFetchRequested}
+                    onSuggestionsClearRequested={this.onSuggestionsClearRequested}
+                    getSuggestionValue={getSuggestionValue}
+                    renderSuggestion={renderSuggestion}
+                    inputProps={inputProps}
+                /></td>
                 <td>{this.state.currValue}</td>
                 <td><input style={{ width: 50 }} type="text" value={this.state.amount} onChange={this.onChangeAmount} placeholder="0.5" /></td>
                 <td>{this.state.total}</td>
