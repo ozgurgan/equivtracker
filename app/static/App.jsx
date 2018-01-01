@@ -248,7 +248,7 @@ class Row extends React.Component {
                     inputProps={inputProps}
                 /></td>
                 <td>{this.state.currValue}</td>
-                <td><input style={{ width: 50 }} type="text" value={this.state.amount} onChange={this.onChangeAmount} placeholder="0.5" /></td>
+                <td><input style={{ width: 50, height: 30 }} type="text" value={this.state.amount} onChange={this.onChangeAmount} placeholder="0.5" /></td>
                 <td>{this.state.total}</td>
             </tr>
         )
