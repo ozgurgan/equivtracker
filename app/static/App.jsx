@@ -36,8 +36,12 @@ class Store {
 
     remove = (id) => {
         const newTotals = this.app.state.totals.filter(elm => elm.id !== id)
+        const newInputs = this.app.state.inputs.filter(e => e.props.id !== id)
         this.app.setState({
-            totals: newTotals
+            totals: newTotals,
+            inputs: newInputs
+        }, () => { 
+            this.app.setState({grandTotal: this.getTotal() })
         })
     }
 
@@ -63,19 +67,19 @@ class App extends React.Component {
 
         }
         this.store = new Store(this) // Initialise our global state here.
-        this.onAddNewAsset = this.onAddNewAsset.bind(this)
     }
     componentDidCatch(error, info) {
         console.log(error, info)
     }
 
-    onAddNewAsset() {
+    onAddNewAsset = () => {
         let time = new Date().getTime()
         this.setState({
             inputs: [...this.state.inputs,
             (<Row key={time} id={time} store={this.store} />)]
         })
     }
+
     componentDidMount() {
         fetch('/_get_json')
             .then(resp => {
@@ -178,6 +182,12 @@ class Row extends React.Component {
         console.log(info)
     }
 
+    remove = () => {
+        const ask = confirm('This will delete this row. R u sure ?')
+        if (!ask) return false
+        this.props.store.remove(this.props.id)
+    }
+
     reset = () => {
         this.setState({
             symbol: '',
@@ -264,7 +274,7 @@ class Row extends React.Component {
                 <td><input style={{ width: 50, height: 30 }} type="text" value={this.state.amount} onChange={this.onChangeAmount} placeholder="0.5" /></td>
                 <td>{this.state.total}</td>
                 <td>
-                    <button className="icon has-text-danger" style={{ marginRight:4 }}>
+                    <button className="icon has-text-danger" style={{ marginRight:4 }} onClick={this.remove}>
                         <i className="fas fa-times fa-lg"></i>
                     </button>
                     <button className="icon has-text-info" onClick={this.reset}>
