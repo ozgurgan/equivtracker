@@ -125,6 +125,7 @@ class App extends React.Component {
                                             <th>Current Value</th>
                                             <th>Amount</th>
                                             <th>Total</th>
+                                            <th>Action</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -136,6 +137,7 @@ class App extends React.Component {
                                             <td></td>
                                             <td>Grand Total</td>
                                             <td className="is-warning"><b>{this.state.grandTotal || '-'}</b></td>
+                                            <td></td>
                                         </tr>
                                     </tfoot>
                                 </table>
@@ -174,6 +176,17 @@ class Row extends React.Component {
     }
     componentDidCatch(error, info) {
         console.log(info)
+    }
+
+    reset = () => {
+        this.setState({
+            symbol: '',
+            suggestions: [],
+            currValue: 0.00,
+            amount: 1,
+            total: 0.00
+        })
+        this.props.store.update(this.props.id, 0.00)
     }
 
     onChangeAmount(event) {
@@ -250,6 +263,14 @@ class Row extends React.Component {
                 <td>{this.state.currValue}</td>
                 <td><input style={{ width: 50, height: 30 }} type="text" value={this.state.amount} onChange={this.onChangeAmount} placeholder="0.5" /></td>
                 <td>{this.state.total}</td>
+                <td>
+                    <button className="icon has-text-danger" style={{ marginRight:4 }}>
+                        <i className="fas fa-times fa-lg"></i>
+                    </button>
+                    <button className="icon has-text-info" onClick={this.reset}>
+                        <i className="fas fa-eraser fa-lg"></i>
+                    </button>
+                </td>
             </tr>
         )
     }
