@@ -171,7 +171,8 @@ class Row extends React.Component {
             suggestions: [],
             currValue: 0.00,
             amount: 1,
-            total: 0.00
+            total: 0.00,
+            showInUSD: false
         }
         props.store.update(props.id)
 
@@ -194,7 +195,8 @@ class Row extends React.Component {
             suggestions: [],
             currValue: 0.00,
             amount: 1,
-            total: 0.00
+            total: 0.00,
+            showInUSD: false
         })
         this.props.store.update(this.props.id, 0.00)
     }
@@ -212,6 +214,32 @@ class Row extends React.Component {
         })
 
     }
+
+    onResultCurrencyChange = (event) => {
+        if (!this.state.symbol) return false
+        const val = this.props.store.getPrices().find(e => e.symbol === this.state.symbol)
+        if (!val) return false
+        let last3Chars = val.symbol.substr(-3)
+        let totalValue
+        let showInUSD = !this.state.showInUSD
+
+        if (last3Chars == 'BTC' && showInUSD) {
+            const btcVal = this.props.store.getPrices().find(e => e.symbol === 'BTCUSDT')
+            totalValue = Number((btcVal.price * this.state.total).toFixed(4))
+        } else if (last3Chars == 'ETH' && showInUSD) {
+            const ethVal = this.props.store.getPrices().find(e => e.symbol === 'ETHUSDT')
+            totalValue = Number((ethVal.price * this.state.total).toFixed(4))
+        } else {
+            totalValue = Number((val.price * this.state.amount).toFixed(4))
+            showInUSD = false
+        }
+
+        this.setState({ 
+            showInUSD: showInUSD,
+            total: totalValue
+        }, () => this.props.store.update(this.props.id, totalValue) )
+    }
+    
     onChange(event, suggest ) {
         const symbol = event.target.value || suggest.newValue
         const val = this.props.store.getPrices().find(e => e.symbol === symbol)
@@ -274,7 +302,10 @@ class Row extends React.Component {
                 <td><input style={{ width: 50, height: 30 }} type="text" value={this.state.amount} onChange={this.onChangeAmount} placeholder="0.5" /></td>
                 <td>{this.state.total}</td>
                 <td>
-                    <button className="icon has-text-danger" style={{ marginRight:4 }} onClick={this.remove}>
+                    <button className={'icon ' + (this.state.showInUSD ? " has-text-success " : null)} onClick={this.onResultCurrencyChange}>
+                        <i className="fas fa-dollar-sign fa-lg"></i>
+                    </button>
+                    <button className="icon has-text-danger"  onClick={this.remove}>
                         <i className="fas fa-times fa-lg"></i>
                     </button>
                     <button className="icon has-text-info" onClick={this.reset}>
